@@ -1,10 +1,13 @@
 
+from std/unicode import Rune
 from std/algorithm import reverse
+import pkg/unicode_space_decimal/space
 import ./split/[
   common, split_whitespace, rsplit_whitespace, gen
 ]
 
 import ./meth
+
 template ISSPACE*[S](s: S, i: int): bool =
   bind isspace
   isspace(s[i])

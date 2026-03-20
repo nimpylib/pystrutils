@@ -1,8 +1,10 @@
 
 import ./err
+from std/unicode import Rune
 
 template noEmptySep*(sep) =
-  when sep is not char:
+  bind Rune
+  when sep is not char and sep is not Rune:
     if sep.len == 0:
       raise newException(ValueError, "empty separator")
 

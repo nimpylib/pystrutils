@@ -1,6 +1,7 @@
 
 import ./[common, reimporter]
 import std/strutils
+import ./split_runes
 
 template postdo*(split_name) =
   const name = astToStr(split_name)
@@ -17,13 +18,15 @@ template strutils_rsplit(s, sep, maxsplit): untyped =
 
 
 template byteLen*(s: string): int = s.len
-template byteLen*(c: char): int = 1
+template byteLen*(s: openArray[Rune]): int = s.len
+template byteLen*(c: char|Rune): int = 1
 
 template proc_gen_split*(split; PyList; append){.dirty.} =
   bind postdo, noEmptySep
   bind norm_maxsplit, PREPARE_CAP
   bind strutils_split
   bind strutils_rsplit
+  bind Rune
   proc `split whitespace`*[S](pystr: S, maxsplit = -1): PyList[S] =
     let
       str_len = len(pystr)
@@ -36,20 +39,29 @@ template proc_gen_split*(split; PyList; append){.dirty.} =
 
   iterator `split NoCheck`(s: string, sep: char|string, maxsplit = -1): string{.inline.} =
     for i in `strutils split`(s, sep, maxsplit): yield i
-  iterator `split NoCheck`(s: string, sep: not (string|char), maxsplit = -1): string{.inline.} =
-    for i in `strutils split`(s, $sep, maxsplit): yield i
+  iterator `split NoCheck`(s: openArray[Rune], sep: openArray[Rune]|Rune, maxsplit = -1): seq[Rune]{.inline.} =
+    for i in `strutils split`(s, sep, maxsplit): yield i
 
-  iterator split*[S](a: S,
+  iterator split*[S: not openArray[Rune]](a: S,
       sep: S|string|char, maxsplit = -1): S{.inline.} =
     noEmptySep sep
     for i in `split NoCheck`($a, sep, maxsplit): yield S i
+
+  iterator split*(a: openArray[Rune],
+      sep: openArray[Rune], maxsplit = -1): seq[Rune]{.inline.} =
+    noEmptySep sep
+    for i in `split NoCheck`(a, sep, maxsplit): yield i
+  iterator split*(a: openArray[Rune],
+      sep: Rune, maxsplit = -1): seq[Rune]{.inline.} =
+    noEmptySep sep
+    for i in `split NoCheck`(a, sep, maxsplit): yield i
 
   proc split*[S](a: S, maxsplit = -1): PyList[S] =
     a.`split whitespace`(maxsplit)
 
   # strutils.split func does not use any predicted capacity.
 
-  proc split*[S](a: S, sep: S|string|char, maxsplit = -1): PyList[S] =
+  template split_proc_impl[S](a2splitNoCheck) =
     template initRes[PyStr](maxcount) = 
       result = `new PyList OfCap`[PyStr](PREPARE_CAP maxcount)
     noEmptySep sep
@@ -58,6 +70,10 @@ template proc_gen_split*(split; PyList; append){.dirty.} =
       str_len = a.byteLen
       sep_len = sep.byteLen
     initRes[S](norm_maxsplit(maxsplit, str_len=str_len, sep_len=sep_len))
-    for i in `split NoCheck`($a, sep, maxsplit): result.append i
+    for i in `split NoCheck`(a2splitNoCheck, sep, maxsplit): result.append i
     postdo split
+  proc split*(a: openArray[Rune], sep: openArray[Rune]|Rune, maxsplit = -1): PyList[seq[Rune]] =
+    split_proc_impl[seq[Rune]](a)
+  proc split*[S](a: S, sep: S|string|char, maxsplit = -1): PyList[S] =
+    split_proc_impl[S]($a)
 
