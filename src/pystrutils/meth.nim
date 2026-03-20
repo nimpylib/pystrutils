@@ -1,8 +1,10 @@
 
 import std/strutils except strip, split, rsplit
+from std/unicode import Rune
 
 import ./replaceWithCount
 import ./errHandle
+import ./finds
 
 import pkg/unicode_case/utils
 export istitleImpl, allAlpha
@@ -70,14 +72,15 @@ func rfind1*[S; T](a: S, b: T, start = 0, `end`: int): int =
 func rfind1*[S; T](a: S, b: T, start = 0): int =
   rfind1(a, b, start, len(a))
 
+
 template gen_find(find){.dirty.} =
-  func find*[S; T](a: S, b: T, start = 0): int =
+  func find*[C](a, b: openArray[C], start: int): int =
     let i = start.norm_idx(a)
-    strutils.find($a, $b, i)
-  func find*[S; T](a: S, b: T, start = 0, `end`: int): int =
+    find(a.toOpenArray(i, a.high), b, i)
+  func find*[C](a, b: openArray[C], start = 0, `end`: int): int =
     let i = start.norm_idx(a)
     let last = `end`.norm_idx(a) - 1
-    strutils.find($a, $b, i, last)
+    find(a.toOpenArray(i, last), b)
 
 gen_find find
 gen_find rfind
@@ -280,14 +283,24 @@ func join*[T, S](sep: S, a: openArray[T]): S =
   ## Mimics Python join() -> string
   S a.join($(sep))
 
+template partitionImpl(find; resA; resSep: untyped = sep){.dirty.} =
+  bind find
+  let idx = find(a, sep)
+  if idx == -1:
+    result.before = resA
+    return
+  result = (a[0..<idx], resSep, a[idx+len(sep) .. ^1] )
+
+template len(c: char): int = 1
+template len(c: Rune): int = 1
 template partitionGen(name; find){.dirty.} =
   func name*[S](a: S, sep: S): tuple[before, sep, after: S] =
     noEmptySep(sep)
-    let idx = a.find(sep)
-    if idx == -1:
-      result.before = a
-      return
-    result = (a[0..<idx], sep, a[idx+len(sep) .. ^1] )
+    partitionImpl finds.find, a
+  func name*[C](a: openArray[C], sep: C): tuple[before, sep, after: seq[C]] =
+    partitionImpl find, @a, @[sep]
+  func name*(a: string, sep: char): tuple[before, sep, after: string] =
+    partitionImpl find, a, $sep
 
 partitionGen partition, find
 partitionGen rpartition, rfind

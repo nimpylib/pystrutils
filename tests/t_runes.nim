@@ -12,3 +12,14 @@ test "split runes":
     @[Rune'b'],
   ]
 
+test "partition runes":
+  template t(sep) =
+    var s = @[Rune'a', Rune' ', Rune'b']
+    check s.partition(sep) == (
+      @[Rune'a'],
+      @[Rune' '],
+      @[Rune'b'],
+    )
+  t Rune ' '
+  t @[Rune ' ']
+
