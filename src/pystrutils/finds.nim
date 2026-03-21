@@ -12,21 +12,21 @@ elif defined(bsd) or (defined(macosx) and not defined(ios)):
 from std/algorithm import fill
 
 type
-  SkipTable[C: SomeOrdinal] = (
+  SkipTableT*[C: SomeOrdinal] = (
     when sizeof(C) == 1: array[C, int]
     else: seq[int]
   )
 
 type Size1 = char|byte|int8
-proc `[]`[C: not Size1](self: SkipTable[C], i: C): int = self[int(i)]
-proc `[]=`[C: not Size1](self: var SkipTable[C], i: C, val: int) = self[int(i)] = val
-proc `[]`[C: not Size1](self: var SkipTable[C], i: C): var int = self[int(i)]
+proc `[]`[C: not Size1](self: SkipTableT[C], i: C): int = self[int(i)]
+proc `[]=`[C: not Size1](self: var SkipTableT[C], i: C, val: int) = self[int(i)] = val
+proc `[]`[C: not Size1](self: var SkipTableT[C], i: C): var int = self[int(i)]
 
-proc newSkipTable[C]: SkipTable[C] =
+proc newSkipTable[C]: SkipTableT[C] =
   when sizeof(C) > 1:
     result = newSeq[int](ord high C)
 
-func initSkipTable[C](a: var SkipTable[C], sub: openArray[C]) =
+func initSkipTable*[C](a: var SkipTableT[C], sub: openArray[C]) =
   # TODO: this should be the `default()` initializer for the type.
   let m = len(sub)
   a = newSkipTable[C]()
@@ -34,10 +34,11 @@ func initSkipTable[C](a: var SkipTable[C], sub: openArray[C]) =
 
   for i in 0 ..< m - 1:
     a[sub[i]] = m - 1 - i
-func initSkipTable[C](sub: openArray[C]): SkipTable[C] =
+
+func initSkipTableT*[C](sub: openArray[C]): SkipTableT[C] =
   result.initSkipTable sub
 
-func find[C](a: SkipTable[C], s, sub: openArray[C], start: Natural = 0, last = -1): int =
+func find*[C](a: SkipTableT[C], s, sub: openArray[C], start: Natural = 0, last = -1): int =
   ## Searches for `sub` in `s` inside range `start..last` using preprocessed
   ## table `a`. If `last` is unspecified, it defaults to `s.high` (the last
   ## element).
@@ -75,7 +76,7 @@ proc findImpl[T](s, sub: T, start: Natural = 0, last = -1): int =
     return
 
   template useSkipTable =
-    result = find(initSkipTable(sub), s, sub, start, last)
+    result = find(initSkipTableT(sub), s, sub, start, last)
 
   when nimvm:
     useSkipTable()
@@ -123,6 +124,11 @@ func rfind*[T](s, sub: T, start: Natural, last = -1): int =
 func rfind*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
   rfindImpl(s, sub, start, last)
 
+func find*[C](s: openArray[C], sub: C, start: Natural = 0, last = -1): int =
+  let last: Natural = if last < 0: s.len-1 else: last
+  for i in countup(start, last):
+    if s[i] == sub: return i
+  return -1
 # system lacks such rfind
 func rfind*[C](s: openArray[C], sub: C, start: Natural = 0, last = -1): int =
   let last: Natural = if last < 0: s.len-1 else: last
