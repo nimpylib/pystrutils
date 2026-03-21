@@ -18,7 +18,7 @@ template strutils_rsplit(s, sep, maxsplit): untyped =
 
 
 template byteLen*(s: string): int = s.len
-template byteLen*(s: openArray[Rune]): int = s.len
+template byteLen*(s: openArray[char|Rune]): int = s.len
 template byteLen*(c: char|Rune): int = 1
 
 template proc_gen_split*(split; PyList; append){.dirty.} =
@@ -39,20 +39,20 @@ template proc_gen_split*(split; PyList; append){.dirty.} =
 
   iterator `split NoCheck`(s: string, sep: char|string, maxsplit = -1): string{.inline.} =
     for i in `strutils split`(s, sep, maxsplit): yield i
-  iterator `split NoCheck`(s: openArray[Rune], sep: openArray[Rune]|Rune, maxsplit = -1): seq[Rune]{.inline.} =
+  iterator `split NoCheck`[C: char|Rune](s: openArray[C], sep: openArray[C]|C, maxsplit = -1): seq[C]{.inline.} =
     for i in `strutils split`(s, sep, maxsplit): yield i
 
-  iterator split*[S: not openArray[Rune]](a: S,
+  iterator split*[S: not openArray[Rune|char]](a: S,
       sep: S|string|char, maxsplit = -1): S{.inline.} =
     noEmptySep sep
     for i in `split NoCheck`($a, sep, maxsplit): yield S i
 
-  iterator split*(a: openArray[Rune],
-      sep: openArray[Rune], maxsplit = -1): seq[Rune]{.inline.} =
+  iterator split*[C: char|Rune](a: openArray[C],
+      sep: openArray[C], maxsplit = -1): seq[C]{.inline.} =
     noEmptySep sep
     for i in `split NoCheck`(a, sep, maxsplit): yield i
-  iterator split*(a: openArray[Rune],
-      sep: Rune, maxsplit = -1): seq[Rune]{.inline.} =
+  iterator split*[C: char|Rune](a: openArray[C],
+      sep: C, maxsplit = -1): seq[C]{.inline.} =
     noEmptySep sep
     for i in `split NoCheck`(a, sep, maxsplit): yield i
 
@@ -72,8 +72,10 @@ template proc_gen_split*(split; PyList; append){.dirty.} =
     initRes[S](norm_maxsplit(maxsplit, str_len=str_len, sep_len=sep_len))
     for i in `split NoCheck`(a2splitNoCheck, sep, maxsplit): result.append i
     postdo split
-  proc split*(a: openArray[Rune], sep: openArray[Rune]|Rune, maxsplit = -1): PyList[seq[Rune]] =
-    split_proc_impl[seq[Rune]](a)
-  proc split*[S](a: S, sep: S|string|char, maxsplit = -1): PyList[S] =
+  proc split*[C: char|Rune](a: openArray[C], sep: openArray[C], maxsplit = -1): PyList[seq[C]] =
+    split_proc_impl[seq[C]](a)
+  proc split*[C: char|Rune](a: openArray[C], sep: C, maxsplit = -1): PyList[seq[C]] =
+    split_proc_impl[seq[C]](a)
+  proc split*[S: not seq](a: S, sep: S|string|char, maxsplit = -1): PyList[S] =
     split_proc_impl[S]($a)
 

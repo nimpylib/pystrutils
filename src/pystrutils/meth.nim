@@ -76,11 +76,16 @@ func rfind1*[S; T](a: S, b: T, start = 0): int =
 template gen_find(find){.dirty.} =
   func find*[C](a, b: openArray[C], start: int): int =
     let i = start.norm_idx(a)
-    find(a.toOpenArray(i, a.high), b, i)
+    finds.find(a, b, i)
   func find*[C](a, b: openArray[C], start = 0, `end`: int): int =
     let i = start.norm_idx(a)
     let last = `end`.norm_idx(a) - 1
-    find(a.toOpenArray(i, last), b)
+    finds.find(a, b, i, last)
+
+  func find*[T](a, b: T, start: int, `end`: int): int =
+    let i = start.norm_idx(a)
+    let last = `end`.norm_idx(a) - 1
+    finds.find(a, b, i, last)
 
 gen_find find
 gen_find rfind
@@ -284,8 +289,7 @@ func join*[T, S](sep: S, a: openArray[T]): S =
   S a.join($(sep))
 
 template partitionImpl(find; resA; resSep: untyped = sep){.dirty.} =
-  bind find
-  let idx = find(a, sep)
+  let idx = find
   if idx == -1:
     result.before = resA
     return
@@ -296,11 +300,11 @@ template len(c: Rune): int = 1
 template partitionGen(name; find){.dirty.} =
   func name*[S](a: S, sep: S): tuple[before, sep, after: S] =
     noEmptySep(sep)
-    partitionImpl finds.find, a
+    partitionImpl(finds.find(a, sep, start=0), a)
   func name*[C](a: openArray[C], sep: C): tuple[before, sep, after: seq[C]] =
-    partitionImpl find, @a, @[sep]
+    partitionImpl a.find(sep), @a, @[sep]
   func name*(a: string, sep: char): tuple[before, sep, after: string] =
-    partitionImpl find, a, $sep
+    partitionImpl strutils.find(a, sep), a, $sep
 
 partitionGen partition, find
 partitionGen rpartition, rfind

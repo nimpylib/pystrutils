@@ -64,8 +64,8 @@ func find[C](a: SkipTable[C], s, sub: openArray[C], start: Natural = 0, last = -
     inc skip, a[s[skip + subLast]]
 
 
-proc find*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
-
+proc findImpl[T](s, sub: T, start: Natural = 0, last = -1): int = 
+  type C = typeof(s[0])
   if sub.len > s.len - start: return -1
   if sub.len == 1:
     let i: Natural = if last < 0: s.len - 1 else: last
@@ -93,7 +93,8 @@ proc find*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
     else:
       useSkipTable()
 
-func rfind*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
+
+func rfindImpl[T](s, sub: T, start: Natural = 0, last = -1): int =
   if sub.len == 0:
     let rightIndex: Natural = if last < 0: s.len else: last
     return max(start, rightIndex)
@@ -109,6 +110,18 @@ func rfind*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
         break
     if result != -1: return
   return -1
+
+# We doesn't define defval for following one to distinguish with system.find, system.rfind
+
+proc find*[T](s, sub: T, start: Natural, last = -1): int = 
+  findImpl(s, sub, start, last)
+proc find*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
+  findImpl(s, sub, start, last)
+
+func rfind*[T](s, sub: T, start: Natural, last = -1): int =
+  rfindImpl(s, sub, start, last)
+func rfind*[C](s, sub: openArray[C], start: Natural = 0, last = -1): int =
+  rfindImpl(s, sub, start, last)
 
 # system lacks such rfind
 func rfind*[C](s: openArray[C], sub: C, start: Natural = 0, last = -1): int =

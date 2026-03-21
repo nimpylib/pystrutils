@@ -21,7 +21,7 @@ template stringHasSep[T](s: openArray[T], index: int, sep: T): bool =
 template stringHasSep[T](s: openArray[T], index: int, sep: openArray[T]): bool =
   s.substrEq(index, sep)
 
-template subSeq(s: openArray[Rune], start, stop: int): untyped =
+template subSeq(s: openArray[char|Rune], start, stop: int): untyped =
   @s[start..stop]
 
 template splitCommon(s, sep, maxsplit, sepLen) =
@@ -66,10 +66,10 @@ template rsplitCommon(s, sep, maxsplit, sepLen) =
     last = first
 
 template gen_split(split){.dirty.} =
-  iterator split*(s: openArray[Rune], sep: Rune, maxsplit: int = -1): seq[Rune] =
+  iterator split*[C: char|Rune](s: openArray[C], sep: C, maxsplit: int = -1): seq[C] =
     splitCommon(s, sep, maxsplit, 1)
 
-  iterator split*(s: openArray[Rune], sep: openArray[Rune], maxsplit: int = -1): seq[Rune] =
+  iterator split*[C: char|Rune](s: openArray[C], sep: openArray[C], maxsplit: int = -1): seq[C] =
     let sepLen = if sep.len == 0: 1 # prevents infinite loop
       else: sep.len
     splitCommon(s, sep, maxsplit, sepLen)
