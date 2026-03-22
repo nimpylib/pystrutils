@@ -26,25 +26,26 @@ func count*[S](a: S, sub: S, start=0, `end`: int): int =
   count(substr($a, start.norm_idx(a), `end`.norm_idx(a) - 1), $sub)
 
 
-template seWith(seWith){.dirty.} =
+template seWith(seWith, find, FindIdx){.dirty.} =
   template sewith*[S](a: S, suffix: char): bool =
     seWith($a, suffix)
   template sewith*[S](a: char, suffix: S): bool =
     suffix.len == 1 and a == suffix[0]
-  func sewith*[S; Tup: tuple](a: S, suffix: Tup): bool =
-    let s = $a
+  func sewith*[S; Tup: tuple](a: S, suffix: Tup, start=0, `end`=a.len): bool =
     for _, suf in suffix.fieldPairs:
-      if s.sewith suf:
+      if a.sewith(suf, start, `end`):
         return true
-  func sewith*[S; Suf: S | tuple](a: S, suffix: Suf, start: int): bool =
-    let s = $a
-    substr(s, start.norm_idx(a)).sewith(suffix)
-  func sewith*[S; Suf: S | tuple](a: S, suffix: Suf,
-      start, `end`: int): bool =
+  func sewith*[S: not seq; Suf: S](a: S, suffix: Suf,
+      start=0, `end`=a.len): bool =
     substr($a, start.norm_idx(a), `end`.norm_idx(a) - 1).sewith(suffix)
+  func sewith*[C](a, suffix: openArray[C],
+      start=0, `end`=a.len): bool =
+    let res = a.toOpenArray(start.norm_idx(a), `end`.norm_idx(a) - 1).find(suffix)
+    if res < 0: return
+    res == FindIdx
 
-seWith startsWith
-seWith endsWith
+seWith startsWith, find, 0
+seWith endsWith, rfind, `end`-start-suffix.len
 
 
 func find1*[S; T](a: S, b: T, start = 0): int =

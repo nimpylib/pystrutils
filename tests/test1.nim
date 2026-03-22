@@ -15,3 +15,7 @@ test "partition":
     let t = (@s).partition(' ')
     check t[0] == @"asd"
     check t[2] == @"dsad d"
+
+test "endswith":
+  check "asdd".endswith("sdd")
+
