@@ -1,6 +1,7 @@
 
 import std/strutils except strip, split, rsplit, replace
 from std/unicode import Rune
+from std/sequtils import nil
 
 import ./replaceWithCount as replaceLib
 import ./errHandle
@@ -35,7 +36,7 @@ template seWith(seWith, find, FindIdx){.dirty.} =
     for _, suf in suffix.fieldPairs:
       if a.sewith(suf, start, `end`):
         return true
-  func sewith*[S: not seq; Suf: S](a: S, suffix: Suf,
+  func sewith*[S: not openArray; Suf: S](a: S, suffix: Suf,
       start=0, `end`=a.len): bool =
     substr($a, start.norm_idx(a), `end`.norm_idx(a) - 1).sewith(suffix)
   func sewith*[C](a, suffix: openArray[C],
@@ -120,17 +121,20 @@ func rindex*[S; T](a: S, b: T, start = 0): int =
 
 const AsciiOrdRange = 0..0x7F
 
-func isascii*(c: char): bool = ord(c) in AsciiOrdRange
-func isascii*(s: string): bool =
+func isascii*(c: char|Rune): bool = ord(c) in AsciiOrdRange
+func isascii*[C: char|Rune](s: openArray[C]): bool =
   result = true
   if s.len == 0: return
   for c in s:
     if not c.isascii(): return false
 
+when isMainModule:
+  assert "asd".isascii
+
 template isspaceImpl(c: char): bool = c in Whitespace
 template isdigitImpl(c: char): bool = strutils.isDigit(c) # just alias
 
-template all(a: string, isX){.dirty.} =
+template all(a: openArray, isX){.dirty.} =
   if a.len == 0: return
   result = true
   for c in a:
@@ -139,7 +143,7 @@ template all(a: string, isX){.dirty.} =
 
 template wrap2(isX, wrap){.dirty.} =
   func isX*(c: char): bool = c.wrap
-  func isX*(s: string): bool = all(s, wrap)
+  func isX*(s: openArray[char]): bool = all(s, wrap)
 
 wrap2 isalpha, isAlphaAscii
 wrap2 isspace, isspaceImpl
@@ -147,39 +151,64 @@ wrap2 isdigit, isdigitImpl
 wrap2 isalnum, isAlphaNumeric
 
 
-template `*`(c: char, i: int): string =
-  bind repeat
-  c.repeat i
-  
-template centerImpl(a, width, fillchar) =
+template `*`(c: char|string, i: int): string = strutils.repeat(c, i)
+template `*`(c: Rune, i: int): seq[Rune] = sequtils.repeat(c, i)
+proc `*`[C: char|Rune](c: seq[C], i: int): seq[C] =
+  result = newSeqOfCap[C](c.len*i)
+  for _ in 1..i:
+    result.add c
+
+template `+`[C](c: seq[C], i: C): seq[C] = @c & i
+template `+`[C](c: openArray[C], i: openArray[C]): seq[C] = @c & @i
+
+template centerImpl(a, width, fillchar; op: untyped = `+`) =
   let
     hWidth = (width-len(a)) div 2
     half = fillchar * hWidth
   result = half + a + half
 
-func center*[S](a: S, width: int, fillchar = ' '): S =
+func center*[S: not openArray](a: S, width: int, fillchar = ' '): S =
   ## Mimics Python str.center(width: int, fillchar: str=" ") -> str
   retIfWider a
   centerImpl a, width, fillchar
+
+func center*[C](a: openArray[C], width: int, fillchar: C): seq[C] =
+  retIfWider(a, `@`)
+  centerImpl a, width, fillchar
+
+func center*[C](a: openArray[C], width: int, fillchar: openArray[C] = [C' ']): seq[C] =
+  discard chkLen(a, `@`)
+  centerImpl(a, width, fillchar[0])
 
 func ljust*(a: string, width: int, fillchar = ' ' ): string =
   alignLeft $a, width, fillchar
 func rjust*(a: string, width: int, fillchar = ' ' ): string =
   align $a, width, fillchar
 
-func center*[S](a: S, width: int, fillchar: S = " "): S =
+func center*[S: not openArray](a: S, width: int, fillchar: S): S =
   discard chkLen a
   centerImpl(a, width, fillchar)
 
-func ljust*[S](a: S, width: int, fillchar: S = " "): S =
-  let le = chkLen a
-  let fills = (width - le) * fillchar
+template ljustImpl(le) =
+  let fills = fillchar * (width - le)
   result = a + fills
-  
-func rjust*[S](a: S, width: int, fillchar: S = " "): S =
-  let le = chkLen a
-  let fills = (width - le) * fillchar
+template rjustImpl(le) =
+  let fills = fillchar * (width - le)
   result = fills + a
+
+template gen_just(ljust){.dirty.} =
+  func ljust*[S: not openArray](a: S, width: int, fillchar: S): S =
+    let le = chkLen a
+    `ljust Impl` a.len
+
+  func ljust*[C](a: openArray[C], width: int, fillchar = C' '): seq[C] = `ljust Impl` a.len
+  func ljust*[C](a: openArray[C], width: int, fillchar: openArray[C]): seq[C] =
+    discard chkLen(a, `@`)
+    let fillchar = fillchar[0]
+    `ljust Impl` a.len
+
+gen_just ljust
+gen_just rjust
 
 func zfill*(c: char, width: int): string =
   if 1 >= width:
@@ -190,23 +219,34 @@ func zfill*(c: char, width: int): string =
     return c & zeroes
   result = zeroes & c
 
-func zfill*(a: string, width: int): string =
+template zfillImpl(CofS, S, res, `+`){.dirty.} =
   let le = len(a)
-  var res = a
   if le >= width:
-    return res
+    return S res
   let fill = width - le
-  let zeroes = '0'.repeat(fill)
+  let zeroes = (CofS'0') * fill
   if le == 0:
-    return zeroes
+    return S zeroes
 
   let first = res[0]
-  res = zeroes & res
-  if first == '+' or first == '-':
+  res = S(zeroes).`+` res
+  if (first == CofS'+') or first == CofS'-':
     # move sign to beginning of string
-    res[fill] = '0'
+    res[fill] = CofS'0'
     res[0] = first
-  result = res
+  result = S res
+
+func zfill*[S: not openArray](a: S, width: int): S =
+  var res = $a
+  zfillImpl char, S, res, `+`
+
+func zfill*[C](a: openArray[C], width: int): seq[C] =
+  var res = @a
+  zfillImpl C, `@`, res, `&`
+
+when isMainModule:
+  assert ['0', '0', 'c', 'z'] == ['c', 'z'].zfill 4
+  assert "00cz" == "cz".zfill 4
 
 func removeprefix*[S](a: S, suffix: S): S =
   var res = $a

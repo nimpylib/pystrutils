@@ -8,14 +8,15 @@ template noEmptySep*(sep) =
     if sep.len == 0:
       raise newException(ValueError, "empty separator")
 
-template retIfWider*[S](a: S) =
+template asIs(x): untyped = x
+template retIfWider*[S](a: S; mapRes: untyped = asIs) =
   if len(a) >= width:
-    return a
+    return mapRes a
 
-template chkLen*(a): int = 
+template chkLen*(a; mapRes: untyped = asIs): int =
   ## 1. returns if wider; 2. raises if not 1 len; 3. length as result
   bind retIfWider
-  retIfWider a
+  retIfWider a, mapRes
   let le = len(fillchar)
   if le != 1:
     raise newException(TypeError, 
