@@ -19,8 +19,8 @@ func subseq(s: openArray[Rune], start, stop: int): seq[Rune] = s[start..stop]
 
 template contains[T](a, b: T): bool = a == b
 
-template gen_char(strip, Res){.dirty.} =
-  func strip*[T](s: openArray[T], chars: T): Res = s.strip(chars=chars)
+template gen_oa2(T, Res, strip){.dirty.} =
+  func strip*(s: openArray[T], chars: openArray[T]): Res = s.strip(asSet chars)
 
 template gen_strip(T, Res, spaces, Set){.dirty.} =
   func stripImpl(s: openArray[T], leading: static[bool] = true, trailing: static[bool] = true,
@@ -41,16 +41,17 @@ template gen_strip(T, Res, spaces, Set){.dirty.} =
       while last >= first and s[last] in chars: dec(last)
     result = subseq(s, first, last)
 
-  func strip*(s, chars: openArray[T]): Res = s.stripImpl(true, true, chars=asSet chars)
+  func strip*(s: openArray[T], chars: Set[T]): Res = s.stripImpl(true, true, chars=chars)
+  gen_oa2(T, Res, strip)
   func strip*(s: openArray[T]): Res = s.stripImpl(chars=spaces)
 
   func lstrip*(self: openArray[T]): Res = self.stripImpl(trailing=false)
   func rstrip*(self: openArray[T]): Res = self.stripImpl(leading=false)
 
-  func lstrip*(self, chars: openArray[T]): Res =
-    self.stripImpl(trailing=false, chars=asSet chars)
-  func rstrip*(self, chars: openArray[T]): Res =
-    self.stripImpl(leading=false, chars=asSet chars)
+  func lstrip*(self: openArray[T], chars: Set[T]): Res = self.stripImpl(trailing=false, chars=chars)
+  gen_oa2(T, Res, lstrip)
+  func rstrip*(self: openArray[T], chars: Set[T]): Res = self.stripImpl(leading=false, chars=chars)
+  gen_oa2(T, Res, rstrip)
 
   func strip* (s: openArray[T], chars: T): Res = s.stripImpl(chars=chars)
   func lstrip*(s: openArray[T], chars: T): Res = s.stripImpl(trailing=false, chars=chars)
