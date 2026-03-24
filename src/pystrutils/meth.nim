@@ -8,6 +8,7 @@ import ./errHandle
 import ./finds
 
 import pkg/unicode_case/utils
+import pkg/unicode_space_decimal
 export istitleImpl, allAlpha
 
 template norm_idx(i, s): int =
@@ -138,18 +139,22 @@ template all(a: openArray, isX){.dirty.} =
   if a.len == 0: return
   result = true
   for c in a:
-    if not c.isX():
+    if not isX(c):
       return false
 
-template wrap2(isX, wrap){.dirty.} =
-  func isX*(c: char): bool = c.wrap
-  func isX*(s: openArray[char]): bool = all(s, wrap)
+template wrap2Aux(C, isX, wrap){.dirty.} =
+  func isX*(c: C): bool = wrap(c)
+  func isX*(s: openArray[C]): bool = all(s, wrap)
 
+template wrap2(isX, wrap){.dirty.} = wrap2Aux(char, isX, wrap)
 wrap2 isalpha, isAlphaAscii
 wrap2 isspace, isspaceImpl
 wrap2 isdigit, isdigitImpl
 wrap2 isalnum, isAlphaNumeric
 
+
+wrap2Aux Rune, isalpha, unicode.isAlpha
+wrap2Aux Rune, isspace, unicode_space_decimal.isSpace
 
 template `*`(c: char|string, i: int): string = strutils.repeat(c, i)
 template `*`(c: Rune, i: int): seq[Rune] = sequtils.repeat(c, i)

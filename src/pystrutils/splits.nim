@@ -1,7 +1,6 @@
 
 from std/unicode import Rune
 from std/algorithm import reverse
-import pkg/unicode_space_decimal/space
 import ./split/[
   common, split_whitespace, rsplit_whitespace, gen
 ]
