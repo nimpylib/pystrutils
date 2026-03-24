@@ -276,8 +276,8 @@ func replace*[S](a: S, sub, by: S, count: int): S =
   else: replaceLib.replace(a, sub, by, count)
 
 template expandtabsAux[S](a: S, tabsize#[: is a Positive]#;
-  strByteLen: int;  iter;
-): string =
+  strByteLen: int;  iter; newStringOfCap
+): untyped =
   # modified from CPython's Objects/unicodeobject.c unicode_expandtabs_impl
   # with some refinement:
   # 
@@ -314,7 +314,7 @@ template expandtabsAux[S](a: S, tabsize#[: is a Positive]#;
       column.inc
   res
 
-template removeAll[S](a: S, toRM: char; strByteLen: int; iter): string =
+template removeAll[S](a: S, toRM: char; strByteLen: int; iter; newStringOfCap): untyped =
   var result = newStringOfCap strByteLen
   for c in a.iter:
     if c != typeof(c)(toRM):
@@ -322,10 +322,16 @@ template removeAll[S](a: S, toRM: char; strByteLen: int; iter): string =
   result
 
 template expandtabsImpl*[S](a: S, tabsize: int;
-  strByteLen: int;  iter;
-): string =
-  if tabsize > 0: expandtabsAux(a, tabsize, strByteLen, iter)
-  else: removeAll(a, '\t', strByteLen, iter)
+  strByteLen: int;  iter; newStringOfCap: typed = newStringOfCap
+): untyped =
+  if tabsize > 0: expandtabsAux(a, tabsize, strByteLen, iter, newStringOfCap)
+  else: removeAll(a, '\t', strByteLen, iter, newStringOfCap)
+
+proc expandtabs*(a: string, tabsize=8): string =
+  expandtabsImpl(a, tabsize, a.len, items)
+
+proc expandtabs*[C](a: openArray[C], tabsize=8): seq[C] =
+  expandtabsImpl(a, tabsize, a.len, items, newSeqOfCap[C])
 
 func join*[T](sep: char, a: openArray[T]): string =
   a.join(sep)
