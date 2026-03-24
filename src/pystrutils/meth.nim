@@ -253,14 +253,23 @@ when isMainModule:
   assert ['0', '0', 'c', 'z'] == ['c', 'z'].zfill 4
   assert "00cz" == "cz".zfill 4
 
-func removeprefix*[S](a: S, suffix: S): S =
+func removeprefix*[S: not openArray](a: S, prefix: S): S =
   var res = $a
-  strutils.removePrefix(res, suffix)
+  strutils.removePrefix(res, prefix)
   S res
-func removesuffix*[S](a: S, suffix: S): S =
+func removesuffix*[S: not openArray](a: S, suffix: S): S =
   var res = $a
   strutils.removeSuffix(res, suffix)
   S res
+
+func removeprefix*[C](a: openArray[C], prefix: openArray[C]): seq[C] =
+  let L = prefix.len
+  if not a.startsWith(prefix): @a
+  else: a[L..^1]
+
+func removesuffix*[C](a: openArray[C], suffix: openArray[C]): seq[C] =
+  if not a.endsWith(suffix): @a
+  else: a[0..(a.len-suffix.len-1)]
 
 template replace*[S](a: S, sub, by: char): untyped =
   replaceLib.replace(a, sub, by)
