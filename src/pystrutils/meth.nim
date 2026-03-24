@@ -7,9 +7,12 @@ import ./replaceWithCount as replaceLib
 import ./errHandle
 import ./finds
 
+import pkg/unicode_case
 import pkg/unicode_case/utils
 import pkg/unicode_space_decimal
 export istitleImpl, allAlpha
+
+export unicode_case
 
 template norm_idx(i, s): int =
   if i < 0: len(s) + i

@@ -24,7 +24,7 @@ template pylib(x, ver) =
 
 pylib "pyformats", " ^= 0.1.0"
 pylib "handy_sugars", " ^= 0.1.0"
-pylib "unicode_case", " ^= 0.1.0"
+pylib "unicode_case", " ^= 0.1.1"
 pylib "unicode_space_decimal", " ^= 0.1.0"
 
 
