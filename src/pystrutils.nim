@@ -6,7 +6,5 @@ impExpCwd pystrutils, [
   replaceWithCount, splits, strips,
 ]
 
-import ./pystrutils/split/splitlinesIter
-
 
 
