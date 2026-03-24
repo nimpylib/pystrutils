@@ -67,12 +67,12 @@ template rsplitCommon(s, sep, maxsplit, sepLen) =
 
 template gen_split(split){.dirty.} =
   iterator split*[C: char|Rune](s: openArray[C], sep: C, maxsplit: int = -1): seq[C] =
-    splitCommon(s, sep, maxsplit, 1)
+    `split Common`(s, sep, maxsplit, 1)
 
   iterator split*[C: char|Rune](s: openArray[C], sep: openArray[C], maxsplit: int = -1): seq[C] =
     let sepLen = if sep.len == 0: 1 # prevents infinite loop
       else: sep.len
-    splitCommon(s, sep, maxsplit, sepLen)
+    `split Common`(s, sep, maxsplit, sepLen)
 
 gen_split split
 gen_split rsplit
