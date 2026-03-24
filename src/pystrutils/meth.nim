@@ -134,6 +134,8 @@ when isMainModule:
 
 template isspaceImpl(c: char): bool = c in Whitespace
 template isdigitImpl(c: char): bool = strutils.isDigit(c) # just alias
+template isdecimalChar(c: char): bool = strutils.isDigit(c) # just alias
+proc isdecimalRune(c: Rune): bool = decimal(c, -1) >= 0
 
 template all(a: openArray, isX){.dirty.} =
   if a.len == 0: return
@@ -151,10 +153,12 @@ wrap2 isalpha, isAlphaAscii
 wrap2 isspace, isspaceImpl
 wrap2 isdigit, isdigitImpl
 wrap2 isalnum, isAlphaNumeric
+wrap2 isdecimal, isdecimalChar
 
 
 wrap2Aux Rune, isalpha, unicode.isAlpha
 wrap2Aux Rune, isspace, unicode_space_decimal.isSpace
+wrap2Aux Rune, isdecimal, isdecimalRune
 
 template `*`(c: char|string, i: int): string = strutils.repeat(c, i)
 template `*`(c: Rune, i: int): seq[Rune] = sequtils.repeat(c, i)
