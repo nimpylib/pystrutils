@@ -2,6 +2,7 @@
 # and refine some style, add some opt, reduce code size by template.
 
 import std/strutils
+import pkg/nimpatch/newUninit
 import ./finds
 
 template add(res: var string, s: openArray[char]) =
