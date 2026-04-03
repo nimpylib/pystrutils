@@ -1,5 +1,5 @@
 
-type
-  TypeError* = object of CatchableError
+import pkg/pysimperr/simperr
+export TypeError
 
 
