@@ -31,6 +31,7 @@ func count*[S](a: S, sub: S, start=0, `end`: int): int =
   count(substr($a, start.norm_idx(a), `end`.norm_idx(a) - 1), $sub)
 
 
+type NotOpenArray = not openArray and not string
 template seWith(seWith, find, FindIdx){.dirty.} =
   template sewith*[S](a: S, suffix: char): bool =
     seWith($a, suffix)
@@ -40,7 +41,7 @@ template seWith(seWith, find, FindIdx){.dirty.} =
     for _, suf in suffix.fieldPairs:
       if a.sewith(suf, start, `end`):
         return true
-  func sewith*[S: not openArray; Suf: S](a: S, suffix: Suf,
+  func sewith*[S: NotOpenArray; Suf: S](a: S, suffix: Suf,
       start=0, `end`=a.len): bool =
     substr($a, start.norm_idx(a), `end`.norm_idx(a) - 1).sewith(suffix)
   func sewith*[C](a, suffix: openArray[C],
@@ -172,6 +173,8 @@ proc `*`[C: char|Rune](c: seq[C], i: int): seq[C] =
 
 template `+`[C](c: seq[C], i: C): seq[C] = @c & i
 template `+`[C](c: openArray[C], i: openArray[C]): seq[C] = @c & @i
+#XXX:NIM-BUG: when js, string+PyStr mismatch till the following overload added
+template `+`[S: NotOpenArray](c, i: S): S = c & i
 
 template centerImpl(a, width, fillchar; op: untyped = `+`) =
   let
@@ -179,7 +182,7 @@ template centerImpl(a, width, fillchar; op: untyped = `+`) =
     half = fillchar * hWidth
   result = half + a + half
 
-func center*[S: not openArray](a: S, width: int, fillchar = ' '): S =
+func center*[S: NotOpenArray](a: S, width: int, fillchar = ' '): S =
   ## Mimics Python str.center(width: int, fillchar: str=" ") -> str
   retIfWider a
   centerImpl a, width, fillchar
@@ -197,7 +200,7 @@ func ljust*(a: string, width: int, fillchar = ' ' ): string =
 func rjust*(a: string, width: int, fillchar = ' ' ): string =
   align $a, width, fillchar
 
-func center*[S: not openArray](a: S, width: int, fillchar: S): S =
+func center*[S: NotOpenArray](a: S, width: int, fillchar: S): S =
   discard chkLen a
   centerImpl(a, width, fillchar)
 
@@ -209,7 +212,7 @@ template rjustImpl(le) =
   result = fills + a
 
 template gen_just(ljust){.dirty.} =
-  func ljust*[S: not openArray](a: S, width: int, fillchar: S): S =
+  func ljust*[S: NotOpenArray](a: S, width: int, fillchar: S): S =
     let le = chkLen a
     `ljust Impl` a.len
 
@@ -248,7 +251,7 @@ template zfillImpl(CofS, S, res, `+`){.dirty.} =
     res[0] = first
   result = S res
 
-func zfill*[S: not openArray](a: S, width: int): S =
+func zfill*[S: NotOpenArray](a: S, width: int): S =
   var res = $a
   zfillImpl char, S, res, `+`
 
@@ -260,11 +263,11 @@ when isMainModule:
   assert ['0', '0', 'c', 'z'] == ['c', 'z'].zfill 4
   assert "00cz" == "cz".zfill 4
 
-func removeprefix*[S: not openArray](a: S, prefix: S): S =
+func removeprefix*[S: NotOpenArray](a: S, prefix: S): S =
   var res = $a
   strutils.removePrefix(res, prefix)
   S res
-func removesuffix*[S: not openArray](a: S, suffix: S): S =
+func removesuffix*[S: NotOpenArray](a: S, suffix: S): S =
   var res = $a
   strutils.removeSuffix(res, suffix)
   S res
