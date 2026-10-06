@@ -369,9 +369,12 @@ template partitionImpl(find; resA; resSep: untyped = sep){.dirty.} =
 template len(c: char): int = 1
 template len(c: Rune): int = 1
 template partitionGen(name; find){.dirty.} =
-  func name*[S](a: S, sep: S): tuple[before, sep, after: S] =
+  func name*[S: NotOpenArray|string](a: S, sep: S): tuple[before, sep, after: S] =
     noEmptySep(sep)
     partitionImpl(finds.find(a, sep, start=0), a)
+  func name*[C](a: openArray[C], sep: openArray[C]): tuple[before, sep, after: seq[C]] =
+    noEmptySep(sep)
+    partitionImpl(finds.find(a, sep, start=0), @a, @sep)
   func name*[C](a: openArray[C], sep: C): tuple[before, sep, after: seq[C]] =
     partitionImpl a.find(sep), @a, @[sep]
   func name*(a: string, sep: char): tuple[before, sep, after: string] =
